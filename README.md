@@ -1,158 +1,91 @@
-# CSV to Google Sheets - Peatix/connpass参加者データ自動化ツール
+# CSV to Google Sheets - CSVデータのスプレッドシート出力ツール
 
-Peatix、connpass などのイベントサイトからダウンロードしたCSVファイルを、自動でGoogleスプレッドシートに出力するPythonスクリプトです。
-
-## 概要
-
-- **対応ファイル形式**: CSV（UTF-8, UTF-8 BOM, Shift-JIS）
-- **出力先**: Googleスプレッドシート
-- **動作環境**: macOS、Linux、Windows
-- **推奨Python バージョン**: Python 3.8以上
+CSVファイルを、自動でGoogleスプレッドシートに出力するPythonスクリプトです。
 
 ## 主な機能
 
-- ✅ CSVファイルを読み込んでGoogleスプレッドシートに出力
-- ✅ **日本語ファイルパス完全対応**（例: `~/デスクトップ/データ.csv`）
-- ✅ 複数のシート管理に対応
-- ✅ ドライラン機能でプレビュー確認可能
-- ✅ 既存データの上書きまたは追記を選択可能
-- ✅ 複数のエンコーディング形式に自動対応（UTF-8, UTF-8-BOM, CP932, Shift_JIS）
-- ✅ NaN（空セル）の適切な処理
-- ✅ 高速一括書き込み（API呼び出し最適化）
-- ✅ わかりやすいエラーメッセージ
+- CSVファイルを読み込んでGoogleスプレッドシートに出力
+- 日本語ファイルパス完全対応（例: `~/デスクトップ/データ.csv`）
+- 一括アップロード機能（csv_files/内の全CSVを自動処理）
+- 複数のエンコーディング形式に自動対応（UTF-8, UTF-8-BOM, UTF-16, CP932, Shift_JIS）
+- 区切り文字自動検出（カンマ、タブ）
+- 複数のシート管理に対応
+- ドライラン機能でプレビュー確認可能
+- 既存データの上書きまたは追記を選択可能
 
-## セットアップ
+---
 
-### 1. Google Cloud Projectの設定
+## クイックスタート（5分）
 
-#### 1.1 Google Cloud Consoleでプロジェクト作成
-
-1. [Google Cloud Console](https://console.cloud.google.com/) にアクセス
-2. 画面上部の「プロジェクトを選択」をクリック
-3. 「新しいプロジェクト」を選択し、プロジェクト名を入力して作成
-
-#### 1.2 Google Sheets APIを有効化
-
-1. Cloud Consoleで作成したプロジェクトを選択
-2. 左メニューの「APIとサービス」→「ライブラリ」をクリック
-3. 検索ボックスで「Google Sheets API」を検索
-4. 「Google Sheets API」をクリックして「有効にする」ボタンをクリック
-
-#### 1.3 サービスアカウントを作成
-
-1. 「APIとサービス」→「認証情報」をクリック
-2. 「認証情報を作成」→「サービスアカウント」を選択
-3. 以下の情報を入力（その他は任意）
-   - サービスアカウント名: `csv-to-sheets` など
-4. 「作成して続行」をクリック
-5. ロール: 「基本」→「編集者」を選択
-6. 「続行」→「完了」をクリック
-
-#### 1.4 JSONキーをダウンロード
-
-1. 「APIとサービス」→「認証情報」をクリック
-2. 「サービスアカウント」セクションで作成したアカウントをクリック
-3. 「キー」タブをクリック
-4. 「キーを追加」→「新しいキーを作成」
-5. キーのタイプで「JSON」を選択して「作成」
-6. JSONファイル（`credentials.json`）がダウンロードされます
-
-#### 1.5 スプレッドシートを共有
-
-1. Googleドライブで対象のスプレッドシートを開く
-2. スプレッドシートのURLからIDをコピー（後で使用）
-3. 右上の「共有」をクリック
-4. ダウンロードした`credentials.json`をテキストエディタで開く
-5. `"client_email"` の値（例: `xxx@xxx.iam.gserviceaccount.com`）をコピー
-6. スプレッドシートの共有ダイアログにメールアドレスをペーストして、編集者として追加
-
-### 2. Python環境の準備
-
-#### 2.1 ターミナルを開く
-
-Macbookで「ターミナル」アプリを開きます。
-
-#### 2.2 作業ディレクトリを作成
+### 1. セットアップ
 
 ```bash
-mkdir csv_to_sheets
-cd csv_to_sheets
-```
-
-#### 2.3 仮想環境を作成（推奨）
-
-```bash
+# Python仮想環境を作成
 python3 -m venv csv_to_sheets_env
 source csv_to_sheets_env/bin/activate
-```
 
-仮想環境が有効になると、ターミナルプロンプトの前に `(csv_to_sheets_env)` と表示されます。
-
-#### 2.4 必要なライブラリをインストール
-
-```bash
+# 必要なライブラリをインストール
 pip install --upgrade pip
 pip install gspread google-auth-oauthlib google-auth-httplib2 pandas
 ```
 
-#### 2.5 ファイルを配置
+### 2. Google Cloud設定
 
-- `csv_to_sheets.py` をこの作業ディレクトリに配置
-- `credentials.json` をこの作業ディレクトリに配置
-- ダウンロードしたCSVファイルを `data/` フォルダなど、わかりやすい場所に配置
+#### Google Sheets APIを有効化
+1. [Google Cloud Console](https://console.cloud.google.com/) でプロジェクトを作成
+2. 「APIとサービス」→「ライブラリ」→「Google Sheets API」を検索して有効化
+3. 「Google Drive API」も同様に有効化
 
-### 3. ディレクトリ構成例
+#### サービスアカウントを作成
+1. 「APIとサービス」→「認証情報」→「認証情報を作成」→「サービスアカウント」
+2. サービスアカウント名を入力（例: `csv-to-sheets`）
+3. ロール: 「基本」→「編集者」を選択
+4. 「キー」タブ→「キーを追加」→「JSON」を選択してダウンロード
+5. ダウンロードしたJSONファイルを `credentials.json` にリネームしてプロジェクトディレクトリに配置
 
+#### スプレッドシートを共有
+1. Googleドライブで出力先となるスプレッドシートを開く
+2. `credentials.json` をテキストエディタで開き、`"client_email"` の値をコピー
+3. スプレッドシートの「共有」をクリックし、コピーしたメールアドレスを編集者として追加
+
+### 3. 実行
+
+#### 単一ファイルをアップロード
+```bash
+# 仮想環境を有効化
+source csv_to_sheets_env/bin/activate
+
+# スクリプトを実行
+python csv_to_sheets.py <CSVファイルパス> "<スプレッドシートID>" --sheet "シート名"
 ```
-csv_to_sheets/
-├── csv_to_sheets_env/          # 仮想環境フォルダ
-├── csv_to_sheets.py             # メインスクリプト
-├── credentials.json             # Google認証情報（自分のGCPプロジェクトのもの）
-├── data/                        # CSVファイルを配置するフォルダ
-│   ├── participants_peatix.csv
-│   └── participants_connpass.csv
-└── README.md
+
+#### 複数ファイルを一括アップロード
+```bash
+# 実行権限を付与（初回のみ）
+chmod +x batch_upload.sh
+
+# batch_upload.sh を編集してスプレッドシートIDを設定
+# 設定セクション:
+#   SPREADSHEET_ID="あなたのスプレッドシートID"
+
+# 一括アップロード実行
+./batch_upload.sh
 ```
+
+---
 
 ## 使い方
 
-### 基本的な実行方法
+### スプレッドシートIDの取得方法
 
-```bash
-# 1. 仮想環境を有効化（毎回の実行時に必要）
-source csv_to_sheets_env/bin/activate
-
-# 2. スクリプトを実行（URLまたはIDを指定）
-python csv_to_sheets.py <CSVファイルパス> "<スプレッドシートURL or ID>"
+GoogleドライブでスプレッドシートのURLを確認：
+```
+https://docs.google.com/spreadsheets/d/1abc123def456xyz/edit#gid=0
+                                        ↑↑↑↑↑↑↑↑↑↑↑↑↑
+                                        このID部分
 ```
 
-### 実行例
-
-#### 例1: スプレッドシートのURLを指定
-
-```bash
-python csv_to_sheets.py data/participants.csv "https://docs.google.com/spreadsheets/d/1abc123def456/edit#gid=0"
-```
-
-#### 例2: スプレッドシートのIDを指定
-
-```bash
-python csv_to_sheets.py data/participants.csv "1abc123def456"
-```
-
-#### 例3: シート名を指定
-
-```bash
-python csv_to_sheets.py data/participants.csv "1abc123def456" --sheet "Peatix_20240101"
-```
-
-#### 例4: ドライラン（プレビューのみ）
-
-```bash
-python csv_to_sheets.py data/participants.csv "1abc123def456" --dry-run
-```
-
-## コマンドオプション一覧
+### コマンドオプション
 
 | オプション | 短縮形 | 説明 | デフォルト |
 |-----------|--------|------|-----------|
@@ -162,46 +95,87 @@ python csv_to_sheets.py data/participants.csv "1abc123def456" --dry-run
 | `--credentials` | `-c` | Google認証情報ファイルのパス | `credentials.json` |
 | `--no-clear` | - | 既存データをクリアせず追記 | （クリアする） |
 | `--dry-run` | `-d` | ドライラン（プレビューのみ） | （実行） |
-| `--help` | `-h` | ヘルプを表示 | - |
 
-### スプレッドシートIDの取得方法
+### 実行例
 
-Googleドライブでスプレッドシートを開いた時のURLから、IDを取得できます：
-
-```
-https://docs.google.com/spreadsheets/d/1abc123def456xyz/edit#gid=0
-                                        ↑↑↑↑↑↑↑↑↑↑↑↑↑
-                                        このID部分を使用
+#### 例1: URLを指定
+```bash
+python csv_to_sheets.py data/participants.csv "https://docs.google.com/spreadsheets/d/1abc123def456/edit"
 ```
 
-スクリプトでは以下のいずれでも指定可能です：
-- **完全なURL**: `https://docs.google.com/spreadsheets/d/1abc123def456xyz/edit`
-- **IDのみ**: `1abc123def456xyz`
+#### 例2: IDとシート名を指定
+```bash
+python csv_to_sheets.py data/participants.csv "1abc123def456" --sheet "参加者リスト"
+```
 
-## 日本語パス対応
+#### 例3: 日本語パスに対応
+```bash
+python csv_to_sheets.py "~/デスクトップ/イベント参加者.csv" "1abc123def456"
+```
 
-このスクリプトは日本語を含むファイルパスに完全対応しています：
+#### 例4: ドライラン
+```bash
+python csv_to_sheets.py data/test.csv "1abc123def456" --dry-run
+```
 
-### 対応するパス形式
+#### 例5: 既存データに追記
+```bash
+python csv_to_sheets.py data/new_data.csv "1abc123def456" --sheet "全イベント" --no-clear
+```
+
+---
+
+## 一括アップロード機能
+
+### batch_upload.sh の使い方
+
+`csv_files/` ディレクトリ内の全CSVファイルを自動でアップロードするシェルスクリプトです。
+
+#### 1. 設定を編集
+
+`batch_upload.sh` をテキストエディタで開き、設定セクションを編集：
 
 ```bash
-# チルダ展開（ホームディレクトリ）
-~/デスクトップ/イベント参加者.csv
-~/ドキュメント/売上データ_2024.csv
+# ============================================================================
+# 設定セクション - ここを編集してください
+# ============================================================================
 
-# 相対パス
-./日本語フォルダ/ファイル.csv
-../親フォルダ/データ.csv
+# GoogleスプレッドシートID
+SPREADSHEET_ID="1Rv_V1jEe8DUMxAk_94bl7TqZa6lRVR5qCgoMx9GKHnU"
 
-# 絶対パス
-/Users/yamada/デスクトップ/参加者リスト.csv
+# Google認証情報ファイルのパス
+CREDENTIALS="credentials.json"
 ```
 
-### エンコーディング・区切り文字自動検出
+#### 2. 実行
 
-以下のエンコーディングと区切り文字を自動検出して処理します：
+```bash
+./batch_upload.sh
+```
 
-**エンコーディング**:
+#### 3. 実行フロー
+
+1. **前提条件チェック**: Pythonスクリプト、仮想環境、認証情報の確認
+2. **CSVファイル検出**: csv_files/ 内の全 .csv ファイルを検索
+3. **確認プロンプト**: アップロード対象ファイルを表示して確認
+4. **各ファイルの処理**: CSVファイル名をシート名として使用し、順次アップロード
+5. **結果サマリー**: 成功/失敗の件数と詳細を表示
+
+#### シート名の生成ルール
+
+CSVファイル名から `.csv` 拡張子を除いた部分がシート名になります：
+
+| CSVファイル名 | 生成されるシート名 |
+|--------------|------------------|
+| `event-attendee-978320.csv` | `event-attendee-978320` |
+| `event_306730_participants.csv` | `event_306730_participants` |
+| `データ_2024.csv` | `データ_2024` |
+
+---
+
+## 対応エンコーディング・区切り文字
+
+### エンコーディング（自動検出）
 1. **UTF-8**（推奨）
 2. **UTF-8 with BOM**（Excelエクスポート）
 3. **UTF-16**（connpass, Peatixエクスポート）
@@ -209,173 +183,124 @@ https://docs.google.com/spreadsheets/d/1abc123def456xyz/edit#gid=0
 5. **CP932**（Windows日本語）
 6. **Shift_JIS**（レガシー日本語）
 
-**区切り文字**:
+### 区切り文字（自動検出）
 1. **カンマ** (`,`) - CSV形式
 2. **タブ** (`\t`) - TSV形式
 
-### 使用例
+スクリプトは自動的に正しいエンコーディングと区切り文字を検出します。
 
-```bash
-# 日本語ファイル名のCSVを読み込み
-python csv_to_sheets.py "~/デスクトップ/イベント参加者_2024.csv" "1abc123def456"
-
-# 日本語の認証情報パス
-python csv_to_sheets.py data.csv "1abc123def456" -c "~/ダウンロード/認証情報.json"
-
-# 日本語シート名
-python csv_to_sheets.py data.csv "1abc123def456" --sheet "参加者一覧"
-```
-
-## よく使うコマンド集
-
-```bash
-# 仮想環境の有効化
-source csv_to_sheets_env/bin/activate
-
-# 仮想環境の終了
-deactivate
-
-# ヘルプを表示
-python csv_to_sheets.py --help
-
-# パスにスペースや日本語が含まれる場合は引用符で囲む
-python csv_to_sheets.py "~/Downloads/participants list.csv" "参加者管理"
-python csv_to_sheets.py "~/ダウンロード/参加者リスト.csv" "1abc123def456"
-```
+---
 
 ## トラブルシューティング
 
-### エラー: `credentials.json が見つかりません`
+### エラー: `ModuleNotFoundError: No module named 'pandas'`
 
-**原因**: 認証情報ファイルがスクリプトと同じディレクトリにないか、パスが正しくない
+**原因**: 仮想環境が有効になっていない
 
 **解決策**:
 ```bash
-# 1. credentials.json が存在するか確認
-ls -la credentials.json
+source csv_to_sheets_env/bin/activate
+```
 
-# 2. パスを指定して実行
-python csv_to_sheets.py data/participants.csv "参加者管理" -c ~/Downloads/credentials.json
+### エラー: `Google Sheets API has not been used`
+
+**原因**: Google Sheets APIが有効になっていない
+
+**解決策**:
+[Google Cloud Console](https://console.developers.google.com/apis/api/sheets.googleapis.com/overview) で API を有効化
+
+### エラー: `credentials.json が見つかりません`
+
+**原因**: 認証情報ファイルが見つからない
+
+**解決策**:
+```bash
+# パスを指定して実行
+python csv_to_sheets.py data.csv "1abc123" -c ~/Downloads/credentials.json
 ```
 
 ### エラー: `スプレッドシートID 'XXX' が見つかりません`
 
-**原因**: スプレッドシートIDが正しくないか、サービスアカウントに権限がない
+**原因**: スプレッドシートIDが正しくない、またはサービスアカウントに権限がない
 
 **解決策**:
-1. Googleドライブで対象のスプレッドシートを開く
-2. URLからIDを正確にコピー（`https://docs.google.com/spreadsheets/d/{ID}/edit` の{ID}部分）
-3. スプレッドシートの共有設定で、`client_email` が編集者として追加されているか確認
-4. 共有後、数秒待ってから再実行
+1. URLからIDを正確にコピー
+2. スプレッドシートの共有設定で、`client_email` が編集者として追加されているか確認
+3. 共有後、数秒待ってから再実行
 
-**IDの確認方法**:
-```bash
-# スプレッドシートを開いたURLの例
-https://docs.google.com/spreadsheets/d/1abc123def456xyz/edit#gid=0
-
-# IDのみを指定
-python csv_to_sheets.py data/participants.csv "1abc123def456xyz"
-
-# または完全なURLで指定
-python csv_to_sheets.py data/participants.csv "https://docs.google.com/spreadsheets/d/1abc123def456xyz/edit"
-```
-
-### エラー: `文字化けが発生する` または `エンコーディングを自動検出できませんでした`
+### エラー: `文字化けが発生する`
 
 **原因**: CSVファイルのエンコーディングが特殊
 
-**スクリプトの対応**: 自動的に以下を試みます
-- エンコーディング: UTF-8, UTF-8-BOM, UTF-16, UTF-16-LE, UTF-16-BE, CP932, Shift-JIS
-- 区切り文字: カンマ (`,`), タブ (`\t`)
+**スクリプトの対応**: 自動的に複数のエンコーディングを試行
 
 **確認方法**:
 ```bash
 # ファイルのエンコーディングを確認
 file yourfile.csv
-
-# 例: UTF-16の場合
-# yourfile.csv: Unicode text, UTF-16, little-endian text
 ```
 
-ほとんどの場合は自動対応しますが、それでも失敗する場合：
+それでも失敗する場合：
 1. CSVファイルをExcelで開く
 2. 「名前を付けて保存」→「CSV UTF-8（カンマ区切り）」を選択
 3. 再度スクリプトを実行
 
-### エラー: `ドライランでは成功したが、実行時にエラーが出る`
+---
 
-**原因**: スプレッドシートの権限不足または接続エラー
+## ディレクトリ構成
 
-**解決策**:
-```bash
-# 1. ドライランで何度か確認
-python csv_to_sheets.py data/participants.csv "参加者管理" --dry-run
-
-# 2. 権限を確認してから実行
-python csv_to_sheets.py data/participants.csv "参加者管理"
-
-# 3. エラーメッセージをコピーして問い合わせ
+```
+python-csv_to_sheets/
+├── csv_to_sheets_env/           # Python仮想環境
+├── csv_to_sheets.py             # メインスクリプト
+├── batch_upload.sh              # 一括アップロードスクリプト
+├── credentials.json             # Google認証情報（自分で配置）
+├── csv_files/                   # CSVファイル配置用ディレクトリ
+│   ├── event-attendee-978320.csv
+│   ├── event_306730_participants.csv
+│   └── ...
+└── README.md
 ```
 
-### エラー: `ModuleNotFoundError: No module named 'gspread'`
-
-**原因**: ライブラリがインストールされていない
-
-**解決策**:
-```bash
-# 仮想環境が有効になっているか確認（プロンプトに (csv_to_sheets_env) があるか）
-source csv_to_sheets_env/bin/activate
-
-# ライブラリを再インストール
-pip install gspread google-auth-oauthlib google-auth-httplib2 pandas
-```
-
-## ワークフロー例
-
-### Peatix参加者データを毎月スプレッドシートに出力する
-
-1. Peatixの管理画面から参加者リストをCSVダウンロード
-2. ダウンロードファイルを `data/participants_202401.csv` にリネーム
-3. 対象のGoogleスプレッドシートを開き、URLからIDをコピー
-4. 以下のコマンドを実行
-
-```bash
-source csv_to_sheets_env/bin/activate
-python csv_to_sheets.py data/participants_202401.csv "1abc123def456xyz" --sheet "202401月"
-```
-
-### 複数イベントのデータを1つのスプレッドシートに統合
-
-```bash
-# Peatixデータを追記
-python csv_to_sheets.py data/peatix_event1.csv "1abc123def456xyz" --sheet "全イベント" --no-clear
-
-# connpassデータを追記
-python csv_to_sheets.py data/connpass_event1.csv "1abc123def456xyz" --sheet "全イベント" --no-clear
-```
 
 ## 注意事項
 
 - **Google認証情報の管理**: `credentials.json` は機密情報です。GitHubなどのリポジトリにコミットしないでください
 - **APIの利用制限**: Google Sheets APIは無料版で一定の利用制限があります。大規模データ処理の場合は注意してください
-- **スプレッドシートの権限**: スクリプトを実行するユーザーがスプレッドシートの編集権限を持っていることを確認してください
+- **スプレッドシートの権限**: スクリプトを実行するサービスアカウントがスプレッドシートの編集権限を持っていることを確認してください
 
-## サポート
+---
 
-スクリプト実行時にエラーが発生した場合：
+## 動作環境
 
-1. エラーメッセージ全文をコピー
-2. ドライランモード（`--dry-run`）で確認
-3. トラブルシューティングセクションを参照
+- **対応OS**: macOS、Linux、Windows
+- **Python バージョン**: Python 3.8以上
+- **対応ファイル形式**: CSV（UTF-8, UTF-8 BOM, UTF-16, Shift-JIS, CP932）
+
+---
+
+## 更新履歴
+
+### v1.3.0
+- 一括アップロードスクリプト（batch_upload.sh）を追加
+- スクリプト内設定方式に変更（引数不要）
+
+### v1.2.0
+- UTF-16エンコーディング対応を追加
+- タブ区切り（TSV）形式の自動検出機能を追加
+
+### v1.1.0
+- 日本語ファイルパス対応
+- pathlibによるクロスプラットフォーム互換性向上
+
+### v1.0.0
+- 基本的なCSV→スプレッドシート出力機能
+- 複数エンコーディング対応
+- ドライラン機能
+- 追記機能
+
+---
 
 ## ライセンス
 
 このスクリプトは自由に利用・改変できます。
-
-## 更新履歴
-
-**v1.0.0** (初版)
-- 基本的なCSV→スプレッドシート出力機能
-- 複数エンコーディング対応
-- ドライラン機能
-- 追記機能# upload-csv-to-sheet-script
