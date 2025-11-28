@@ -1,2 +1,3 @@
 csv_to_sheets_env/
-sample/
+csv_files/
+credentials.json
