@@ -7,6 +7,7 @@ CSVファイルを、自動でGoogleスプレッドシートに出力するPytho
 - CSVファイルを読み込んでGoogleスプレッドシートに出力
 - 日本語ファイルパス完全対応（例: `~/デスクトップ/データ.csv`）
 - 一括アップロード機能（csv_files/内の全CSVを自動処理）
+- **🆕 Google Apps Script (GAS) 自動実行機能**（CSVアップロード後にGASスクリプトを実行）
 - 複数のエンコーディング形式に自動対応（UTF-8, UTF-8-BOM, UTF-16, CP932, Shift_JIS）
 - 区切り文字自動検出（カンマ、タブ）
 - 複数のシート管理に対応
@@ -191,6 +192,36 @@ CSVファイル名から `.csv` 拡張子を除いた部分がシート名にな
 
 ---
 
+## 🚀 Google Apps Script (GAS) 自動実行機能
+
+CSVアップロード後に、スプレッドシートに紐付けられたGASスクリプトを自動実行できます。
+
+### 簡単セットアップ
+
+1. **GASスクリプトを準備**（スプレッドシートの「拡張機能」→「Apps Script」）
+2. **Script IDを取得**（「プロジェクトの設定」→「Script ID」）
+3. **batch_upload.shで設定**:
+
+```bash
+EXECUTE_GAS=true
+GAS_SCRIPT_ID="AKfycbyXXXXXXXXXXXXX"
+GAS_FUNCTION="onDataUploaded"
+GAS_PARAMS='["Sheet1", 100]'  # オプション
+```
+
+4. **実行**: `./batch_upload.sh`
+
+### 詳細ガイド
+
+GAS実行機能の詳細なセットアップ手順は [GAS_EXECUTION_GUIDE.md](GAS_EXECUTION_GUIDE.md) をご覧ください：
+
+- 認証情報の設定方法
+- GASスクリプトの作成例
+- デプロイメント手順
+- トラブルシューティング
+
+---
+
 ## トラブルシューティング
 
 ### エラー: `ModuleNotFoundError: No module named 'pandas'`
@@ -253,13 +284,16 @@ file yourfile.csv
 python-csv_to_sheets/
 ├── csv_to_sheets_env/           # Python仮想環境
 ├── csv_to_sheets.py             # メインスクリプト
-├── batch_upload.sh              # 一括アップロードスクリプト
+├── execute_gas.py               # 🆕 GAS実行スクリプト
+├── batch_upload.sh              # 一括アップロードスクリプト（GAS実行統合済み）
 ├── credentials.json             # Google認証情報（自分で配置）
+├── requirements.txt             # Python依存ライブラリ
 ├── csv_files/                   # CSVファイル配置用ディレクトリ
 │   ├── event-attendee-978320.csv
 │   ├── event_306730_participants.csv
 │   └── ...
-└── README.md
+├── README.md
+└── GAS_EXECUTION_GUIDE.md       # 🆕 GAS実行機能の詳細ガイド
 ```
 
 
@@ -280,6 +314,15 @@ python-csv_to_sheets/
 ---
 
 ## 更新履歴
+
+### v1.4.0 🆕
+- **Google Apps Script (GAS) 自動実行機能を追加**
+  - `execute_gas.py`: GASスクリプトを外部から実行
+  - `batch_upload.sh`: CSVアップロード後にGASを自動実行
+  - Apps Script API統合
+  - パラメータ付き関数実行に対応
+- 詳細ガイド（`GAS_EXECUTION_GUIDE.md`）を追加
+- `requirements.txt`: `google-api-python-client` を追加
 
 ### v1.3.0
 - 一括アップロードスクリプト（batch_upload.sh）を追加

@@ -26,6 +26,13 @@ SPREADSHEET_ID="1Rv_V1jEe8DUMxAk_94bl7TqZa6lRVR5qCgoMx9GKHnU"
 CREDENTIALS="credentials.json"
 # または絶対パス: CREDENTIALS="$HOME/Downloads/eventdatamanager-479423-4f50df8b60ce.json"
 
+# GAS（Google Apps Script）実行設定（オプション）
+# CSVアップロード後にGASスクリプトを自動実行する場合は以下を設定
+EXECUTE_GAS=false  # trueに設定するとGASを実行
+GAS_SCRIPT_ID=""   # GASプロジェクトのScript ID（例: AKfycbyXXXXXXXXXXXXX）
+GAS_FUNCTION=""    # 実行する関数名（例: onDataUploaded）
+GAS_PARAMS=""      # 関数に渡すパラメータ（JSON配列形式、例: '["arg1", 123]'）
+
 # ============================================================================
 # システム設定（通常は変更不要）
 # ============================================================================
@@ -196,5 +203,68 @@ else
     echo -e "スプレッドシートを確認:"
     echo -e "  ${BLUE}https://docs.google.com/spreadsheets/d/$SPREADSHEET_ID${NC}"
     echo ""
+
+    # GAS実行処理（オプション）
+    if [ "$EXECUTE_GAS" = true ]; then
+        echo -e "${BLUE}==================================================${NC}"
+        echo -e "${BLUE}Google Apps Script 実行${NC}"
+        echo -e "${BLUE}==================================================${NC}"
+        echo ""
+
+        # GAS設定の検証
+        if [ -z "$GAS_SCRIPT_ID" ]; then
+            echo -e "${RED}エラー: GAS_SCRIPT_ID が設定されていません${NC}"
+            echo -e "${YELLOW}スクリプト内の設定セクションでGAS_SCRIPT_IDを設定してください${NC}"
+            exit 1
+        fi
+
+        if [ -z "$GAS_FUNCTION" ]; then
+            echo -e "${RED}エラー: GAS_FUNCTION が設定されていません${NC}"
+            echo -e "${YELLOW}スクリプト内の設定セクションでGAS_FUNCTIONを設定してください${NC}"
+            exit 1
+        fi
+
+        # execute_gas.pyの存在確認
+        GAS_EXECUTOR="execute_gas.py"
+        if [ ! -f "$GAS_EXECUTOR" ]; then
+            echo -e "${RED}エラー: $GAS_EXECUTOR が見つかりません${NC}"
+            exit 1
+        fi
+
+        # GASスクリプトを実行
+        echo -e "${BLUE}GASスクリプトを実行しています...${NC}"
+        echo ""
+
+        if [ -n "$GAS_PARAMS" ]; then
+            # パラメータありで実行
+            if "$PYTHON_CMD" "$GAS_EXECUTOR" \
+                "$GAS_SCRIPT_ID" \
+                "$GAS_FUNCTION" \
+                -c "$CREDENTIALS" \
+                --params "$GAS_PARAMS"; then
+                echo ""
+                echo -e "${GREEN}✓ GASスクリプトの実行が完了しました${NC}"
+            else
+                echo ""
+                echo -e "${RED}✗ GASスクリプトの実行に失敗しました${NC}"
+                exit 1
+            fi
+        else
+            # パラメータなしで実行
+            if "$PYTHON_CMD" "$GAS_EXECUTOR" \
+                "$GAS_SCRIPT_ID" \
+                "$GAS_FUNCTION" \
+                -c "$CREDENTIALS"; then
+                echo ""
+                echo -e "${GREEN}✓ GASスクリプトの実行が完了しました${NC}"
+            else
+                echo ""
+                echo -e "${RED}✗ GASスクリプトの実行に失敗しました${NC}"
+                exit 1
+            fi
+        fi
+        echo ""
+    fi
+
     exit 0
 fi
