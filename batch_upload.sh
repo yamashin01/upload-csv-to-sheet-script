@@ -266,5 +266,9 @@ else
         echo ""
     fi
 
+    # CSVファイルを削除
+    rm -f csv_files/*.csv
+    echo -e "${BLUE}CSVファイルを削除しました${NC}"
+
     exit 0
 fi
